@@ -174,5 +174,3 @@ cython_debug/
 .pypirc
 ckpts/*.pt
 ckpts/*.pth
-
-images/
