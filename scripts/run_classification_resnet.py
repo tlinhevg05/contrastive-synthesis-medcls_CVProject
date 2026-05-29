@@ -18,7 +18,7 @@ from src.classification.supervised_baselines import (
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train supervised ViT-S/16 baseline from fixed manifests.")
+    parser = argparse.ArgumentParser(description="Train supervised ResNet18 baseline from fixed manifests.")
     parser.add_argument("--config", required=True, help="Experiment YAML path")
     parser.add_argument("--manifest-dir", default="data/manifests")
     parser.add_argument("--output-dir", default=None)
@@ -33,8 +33,8 @@ def parse_args():
 def main():
     args = parse_args()
     cfg = resolve_training_config(args.config, args)
-    if cfg["backbone"] != "vit_s16":
-        raise ValueError(f"Expected vit_s16 config, got {cfg['backbone']}")
+    if cfg["backbone"] != "resnet18":
+        raise ValueError(f"Expected resnet18 config, got {cfg['backbone']}")
     if cfg["pretraining_strategy"] not in {"none", "imagenet"}:
         raise ValueError("This script only supports supervised none/imagenet baselines.")
 
@@ -52,7 +52,7 @@ def main():
         num_workers=int(cfg["num_workers"]),
     )
 
-    model = build_model("vit_s16", finetune["init"], num_classes=4).to(device)
+    model = build_model("resnet18", finetune["init"], num_classes=4).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
         model.parameters(),

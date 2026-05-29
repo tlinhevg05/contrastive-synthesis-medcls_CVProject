@@ -9,7 +9,7 @@ from src.classification.supervised_baselines import build_model, load_yaml, make
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Evaluate supervised ViT-S/16 baseline on fixed test manifest.")
+    parser = argparse.ArgumentParser(description="Evaluate supervised ResNet18 baseline on fixed test manifest.")
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint-path", required=True)
     parser.add_argument("--manifest-dir", default="data/manifests")
@@ -23,8 +23,8 @@ def parse_args():
 def main():
     args = parse_args()
     cfg = load_yaml(args.config)
-    if cfg["backbone"] != "vit_s16":
-        raise ValueError(f"Expected vit_s16 config, got {cfg['backbone']}")
+    if cfg["backbone"] != "resnet18":
+        raise ValueError(f"Expected resnet18 config, got {cfg['backbone']}")
 
     finetune = cfg["finetune"]
     batch_size = args.batch_size or int(finetune["batch_size"])
@@ -37,7 +37,7 @@ def main():
         batch_size=batch_size,
         num_workers=args.num_workers,
     )
-    model = build_model("vit_s16", finetune["init"], num_classes=4).to(device)
+    model = build_model("resnet18", finetune["init"], num_classes=4).to(device)
     checkpoint = torch.load(args.checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     metrics = save_evaluation_outputs(model, test_loader, device, output_dir)
