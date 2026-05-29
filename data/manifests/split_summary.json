@@ -1,0 +1,53 @@
+{
+  "labelled_dir": "data/processed/labelled_4232",
+  "split_seed": 42,
+  "ratios": {
+    "train": 0.8,
+    "val": 0.1,
+    "test": 0.1
+  },
+  "class_to_label": {
+    "COVID": 0,
+    "Lung_Opacity": 1,
+    "Viral_Pneumonia": 2,
+    "Normal": 3
+  },
+  "files": {
+    "train": "data/manifests/train.csv",
+    "val": "data/manifests/val.csv",
+    "test": "data/manifests/test.csv",
+    "labelled_all": "data/manifests/labelled_all.csv"
+  },
+  "counts": {
+    "train": {
+      "COVID": 578,
+      "Lung_Opacity": 961,
+      "Viral_Pneumonia": 215,
+      "Normal": 1630
+    },
+    "val": {
+      "COVID": 72,
+      "Lung_Opacity": 120,
+      "Viral_Pneumonia": 26,
+      "Normal": 203
+    },
+    "test": {
+      "COVID": 73,
+      "Lung_Opacity": 121,
+      "Viral_Pneumonia": 28,
+      "Normal": 205
+    },
+    "labelled_all": {
+      "COVID": 723,
+      "Lung_Opacity": 1202,
+      "Viral_Pneumonia": 269,
+      "Normal": 2038
+    }
+  },
+  "totals": {
+    "train": 3384,
+    "val": 421,
+    "test": 427,
+    "labelled_all": 4232
+  }
+}
