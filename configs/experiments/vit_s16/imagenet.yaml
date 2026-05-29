@@ -1,0 +1,21 @@
+experiment_id: vit_s16_imagenet
+backbone: vit_s16
+pretraining_strategy: imagenet
+contrastive_method: none
+
+pretrain:
+  enabled: false
+  init: imagenet
+  dataset: none
+  checkpoint_path: null
+
+finetune:
+  init: imagenet
+  checkpoint_path: null
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.00001
+  weight_decay: 0.01
+  freeze_backbone: false
+
+output_dir: results/experiments/vit_s16_imagenet

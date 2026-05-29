@@ -1,0 +1,48 @@
+# Shared defaults for the 12 report-aligned classification experiments.
+# Experiment-specific YAML files override only the fields that change.
+
+project:
+  name: contrastive_synthesis_medcls
+  task: lung_radiology_4class_classification
+
+data:
+  image_size: 224
+  num_classes: 4
+  class_names:
+    - COVID
+    - Lung_Opacity
+    - Viral_Pneumonia
+    - Normal
+  split_seed: 42
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+paths:
+  real_labeled_dir: data/processed/labelled_4232
+  real_unlabeled_dir: data/processed/unlabelled_16934
+  synthetic_dir: null
+  output_root: results/experiments
+
+pretrain:
+  enabled: false
+  init: none
+  dataset: none
+  checkpoint_path: null
+  epochs: null
+  batch_size: null
+  learning_rate: null
+
+finetune:
+  init: random
+  checkpoint_path: null
+  epochs: null
+  batch_size: 32
+  learning_rate: null
+  weight_decay: 0.01
+  freeze_backbone: false
+
+logging:
+  use_wandb: false
+  save_confusion_matrix: true
+  save_classification_report: true

@@ -1,0 +1,21 @@
+experiment_id: resnet18_none
+backbone: resnet18
+pretraining_strategy: none
+contrastive_method: none
+
+pretrain:
+  enabled: false
+  init: none
+  dataset: none
+  checkpoint_path: null
+
+finetune:
+  init: random
+  checkpoint_path: null
+  epochs: 70
+  batch_size: 32
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  freeze_backbone: false
+
+output_dir: results/experiments/resnet18_none

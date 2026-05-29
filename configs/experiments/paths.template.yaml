@@ -1,0 +1,18 @@
+# Copy this file in Colab and edit the values for your Drive layout.
+# Keep this as a template; do not put local machine-specific paths here.
+
+colab:
+  drive_mount: /content/drive
+  repo_root: /content/contrastive-synthesis-medcls_CVProject
+  drive_project_root: /content/drive/MyDrive/contrastive-synthesis-medcls_CVProject
+
+paths:
+  real_labeled_dir: /content/contrastive-synthesis-medcls_CVProject/data/processed/labelled_4232
+  real_unlabeled_dir: /content/contrastive-synthesis-medcls_CVProject/data/processed/unlabelled_16934
+
+  # Set this to the folder containing DCGAN synthetic images.
+  # Expected class subfolders: COVID, Lung_Opacity, Viral_Pneumonia, Normal.
+  synthetic_dir: /content/drive/MyDrive/path/to/DCGAN_synthetic_images
+
+  # Store checkpoints and metrics on Drive so Colab runtime resets do not lose results.
+  output_root: /content/drive/MyDrive/contrastive-synthesis-medcls_CVProject/results/experiments

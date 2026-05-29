@@ -1,0 +1,24 @@
+experiment_id: vit_s16_covidqu_syn
+backbone: vit_s16
+pretraining_strategy: covidqu_syn
+contrastive_method: dino
+
+pretrain:
+  enabled: true
+  init: random
+  dataset: synthetic
+  checkpoint_path: results/experiments/vit_s16_covidqu_syn/pretrain/checkpoints/best_dino_teacher.pth
+  epochs: 120
+  batch_size: 64
+  learning_rate: 0.001
+
+finetune:
+  init: contrastive_checkpoint
+  checkpoint_path: results/experiments/vit_s16_covidqu_syn/pretrain/checkpoints/best_dino_teacher.pth
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.00001
+  weight_decay: 0.01
+  freeze_backbone: false
+
+output_dir: results/experiments/vit_s16_covidqu_syn
