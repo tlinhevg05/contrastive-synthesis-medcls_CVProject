@@ -136,6 +136,7 @@ def parse_args():
     parser.add_argument("--projection-dim", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--device", default=None)
+    parser.add_argument("--resume-checkpoint", default=None)
     return parser.parse_args()
 
 
@@ -163,6 +164,7 @@ def main():
     device = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
     output_dir = Path(cfg["output_dir"])
     checkpoint_path = Path(pretrain["checkpoint_path"])
+    last_checkpoint_path = checkpoint_path.parent / "last_simclr_checkpoint.pth"
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -200,8 +202,23 @@ def main():
 
     best_loss = float("inf")
     history = []
+    start_epoch = 0
+    resume_path = Path(args.resume_checkpoint) if args.resume_checkpoint else last_checkpoint_path
+    if resume_path.exists():
+        checkpoint = torch.load(resume_path, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        if "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        start_epoch = int(checkpoint.get("epoch", 0))
+        best_loss = float(checkpoint.get("best_loss", checkpoint.get("loss", best_loss)))
+        history = list(checkpoint.get("history", []))
+        print(f"Resuming SimCLR from {resume_path} at epoch {start_epoch}")
+
     epochs = int(pretrain["epochs"])
-    for epoch in range(epochs):
+    if start_epoch >= epochs:
+        print(f"Resume checkpoint already reached epoch {start_epoch}; target epochs={epochs}. Nothing to do.")
+
+    for epoch in range(start_epoch, epochs):
         model.train()
         total_loss = 0.0
         total_images = 0
@@ -235,6 +252,20 @@ def main():
                 },
                 checkpoint_path,
             )
+
+        torch.save(
+            {
+                "epoch": epoch + 1,
+                "encoder_state_dict": model.encoder.state_dict(),
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "config": cfg,
+                "loss": avg_loss,
+                "best_loss": best_loss,
+                "history": history,
+            },
+            last_checkpoint_path,
+        )
 
     (output_dir / "pretrain").mkdir(parents=True, exist_ok=True)
     (output_dir / "pretrain/simclr_history.json").write_text(json.dumps(history, indent=2), encoding="utf-8")
