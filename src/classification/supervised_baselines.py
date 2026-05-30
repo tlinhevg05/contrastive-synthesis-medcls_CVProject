@@ -6,6 +6,9 @@ import random
 from pathlib import Path
 from typing import Any
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -215,6 +218,27 @@ def build_resnet18(init: str, num_classes: int) -> nn.Module:
     model = torchvision_resnet18(weights=weights)
     model.fc = nn.Linear(model.fc.in_features, num_classes)
     return model
+
+
+def load_resnet18_encoder_checkpoint(model: nn.Module, checkpoint_path: str | Path) -> None:
+    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    encoder_state = checkpoint.get("encoder_state_dict")
+    if encoder_state is None:
+        raise KeyError(f"{checkpoint_path} does not contain encoder_state_dict")
+
+    model_state = model.state_dict()
+    compatible_state = {
+        key: value
+        for key, value in encoder_state.items()
+        if key in model_state and model_state[key].shape == value.shape and not key.startswith("fc.")
+    }
+    missing, unexpected = model.load_state_dict(compatible_state, strict=False)
+    if not compatible_state:
+        raise ValueError(f"No compatible encoder weights found in {checkpoint_path}")
+    if unexpected:
+        print("Unexpected keys while loading SimCLR encoder:", unexpected)
+    if missing:
+        print("Missing keys after SimCLR encoder load:", missing)
 
 
 def build_vit_s16(init: str, num_classes: int) -> nn.Module:
