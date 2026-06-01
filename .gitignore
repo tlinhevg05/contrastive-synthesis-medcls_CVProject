@@ -181,3 +181,27 @@ cython_debug/
 .pypirc
 ckpts/*.pt
 ckpts/*.pth
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# archives / large local files
+*.zip
+data.zip
+
+# generated synthetic images
+data/processed/synthetic_dcgan/
+data/processed/synthetic_acgan/
+
+# experiment outputs and checkpoints
+results/
+outputs/
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+
+# python cache
+__pycache__/
+*.pyc
