@@ -14,6 +14,8 @@ import torch.nn as nn
 from src.classification.supervised_baselines import (
     build_model,
     dump_yaml,
+    load_yaml,
+    load_vit_dino_checkpoint,
     make_loaders,
     resolve_training_config,
     run_epoch,
@@ -30,6 +32,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--learning-rate", type=float, default=None)
+    parser.add_argument("--pretrained-checkpoint", default=None)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--device", default=None)
     return parser.parse_args()
@@ -40,8 +43,8 @@ def main():
     cfg = resolve_training_config(args.config, args)
     if cfg["backbone"] != "vit_s16":
         raise ValueError(f"Expected vit_s16 config, got {cfg['backbone']}")
-    if cfg["pretraining_strategy"] not in {"none", "imagenet"}:
-        raise ValueError("This script only supports supervised none/imagenet baselines.")
+    if cfg["pretraining_strategy"] not in {"none", "imagenet", "covidqu", "imagenet_covidqu", "covidqu_syn", "imagenet_covidqu_syn"}:
+        raise ValueError(f"Unsupported ViT-S/16 strategy: {cfg['pretraining_strategy']}")
 
     set_seed(42)
     device = torch.device(cfg["device"] or ("cuda" if torch.cuda.is_available() else "cpu"))
@@ -50,6 +53,11 @@ def main():
     dump_yaml(cfg, output_dir / "config_resolved.yaml")
 
     finetune = cfg["finetune"]
+    if args.pretrained_checkpoint is not None:
+        finetune["checkpoint_path"] = args.pretrained_checkpoint
+    elif finetune.get("init") == "contrastive_checkpoint" and cfg["output_dir"] != load_yaml(args.config).get("output_dir"):
+        finetune["checkpoint_path"] = str(output_dir / "pretrain/checkpoints/best_dino_teacher.pth")
+
     train_loader, val_loader, test_loader = make_loaders(
         manifest_dir=cfg["manifest_dir"],
         image_size=224,
@@ -57,7 +65,14 @@ def main():
         num_workers=int(cfg["num_workers"]),
     )
 
-    model = build_model("vit_s16", finetune["init"], num_classes=4).to(device)
+    model_init = "random" if finetune["init"] == "contrastive_checkpoint" else finetune["init"]
+    model = build_model("vit_s16", model_init, num_classes=4)
+    if finetune["init"] == "contrastive_checkpoint":
+        checkpoint_path = finetune.get("checkpoint_path")
+        if not checkpoint_path:
+            raise ValueError("finetune.checkpoint_path is required for contrastive_checkpoint")
+        load_vit_dino_checkpoint(model, checkpoint_path)
+    model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -88,7 +103,7 @@ def main():
                 best_path,
             )
 
-    checkpoint = torch.load(best_path, map_location=device)
+    checkpoint = torch.load(best_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     metrics = save_evaluation_outputs(
         model,

@@ -176,7 +176,7 @@ def main():
         if not synthetic_manifest.exists():
             raise FileNotFoundError(
                 f"Synthetic manifest not found: {synthetic_manifest}. "
-                "Pass --synthetic-manifest /content/drive/.../synthetic_dcgan.csv"
+                "Run the Stage 1 registry notebook first, or pass --synthetic-manifest to a valid synthetic_dcgan.csv."
             )
         image_paths = read_manifest_images(synthetic_manifest)
         source_path = str(synthetic_manifest)
@@ -205,7 +205,7 @@ def main():
     start_epoch = 0
     resume_path = Path(args.resume_checkpoint) if args.resume_checkpoint else last_checkpoint_path
     if resume_path.exists():
-        checkpoint = torch.load(resume_path, map_location=device)
+        checkpoint = torch.load(resume_path, map_location=device, weights_only=False)
         model.load_state_dict(checkpoint["model_state_dict"])
         if "optimizer_state_dict" in checkpoint:
             optimizer.load_state_dict(checkpoint["optimizer_state_dict"])

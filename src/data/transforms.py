@@ -1,8 +1,13 @@
 import random
 from PIL import Image, ImageFilter, ImageOps
 import torchvision.transforms as transforms
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
+
+try:
+    import albumentations as A
+    from albumentations.pytorch.transforms import ToTensorV2
+except ModuleNotFoundError:
+    A = None
+    ToTensorV2 = None
 
 class GaussianBlur:
     """Apply Gaussian Blur to the PIL image."""
@@ -80,6 +85,8 @@ class DataAugmentationDINO:
 
 # Albumentations transforms for classification finetuning
 def get_train_transform(img_size=224):
+    if A is None or ToTensorV2 is None:
+        raise ModuleNotFoundError("albumentations is required for classification Albumentations transforms")
     return A.Compose([
         A.LongestMaxSize(max_size=img_size),
         A.GaussianBlur(blur_limit=(3, 3), p=0.2),
@@ -89,6 +96,8 @@ def get_train_transform(img_size=224):
     ])
 
 def get_val_transform(img_size=224):
+    if A is None or ToTensorV2 is None:
+        raise ModuleNotFoundError("albumentations is required for classification Albumentations transforms")
     return A.Compose([
         A.LongestMaxSize(max_size=img_size), 
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),

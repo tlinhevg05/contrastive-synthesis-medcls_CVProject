@@ -221,7 +221,7 @@ def build_resnet18(init: str, num_classes: int) -> nn.Module:
 
 
 def load_resnet18_encoder_checkpoint(model: nn.Module, checkpoint_path: str | Path) -> None:
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     encoder_state = checkpoint.get("encoder_state_dict")
     if encoder_state is None:
         raise KeyError(f"{checkpoint_path} does not contain encoder_state_dict")
@@ -261,6 +261,37 @@ def build_model(backbone: str, init: str, num_classes: int) -> nn.Module:
     if backbone == "vit_s16":
         return build_vit_s16(init, num_classes)
     raise ValueError(f"Unsupported backbone for supervised baseline: {backbone}")
+
+
+def load_vit_dino_checkpoint(model: nn.Module, checkpoint_path: str | Path) -> None:
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    teacher_state = checkpoint.get("teacher")
+    if teacher_state is None:
+        teacher_state = checkpoint.get("teacher_state_dict")
+    if teacher_state is None:
+        teacher_state = checkpoint.get("state_dict")
+    if teacher_state is None:
+        raise KeyError(f"{checkpoint_path} does not contain a DINO teacher state dict")
+
+    model_state = model.state_dict()
+    compatible_state = {}
+    for key, value in teacher_state.items():
+        if key.startswith("backbone."):
+            new_key = key.replace("backbone.", "", 1)
+        else:
+            new_key = key
+        if new_key.startswith("head.") or new_key.startswith("fc."):
+            continue
+        if new_key in model_state and model_state[new_key].shape == value.shape:
+            compatible_state[new_key] = value
+
+    if not compatible_state:
+        raise ValueError(f"No compatible ViT DINO backbone weights found in {checkpoint_path}")
+    missing, unexpected = model.load_state_dict(compatible_state, strict=False)
+    if unexpected:
+        print("Unexpected keys while loading DINO teacher:", unexpected)
+    if missing:
+        print("Missing keys after DINO teacher load:", missing)
 
 
 def run_epoch(model, loader, criterion, device, optimizer=None):

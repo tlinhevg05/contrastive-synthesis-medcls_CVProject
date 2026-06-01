@@ -78,7 +78,18 @@ def build_vit_backbone(init: str):
     try:
         import timm
 
-        return timm.create_model("vit_small_patch16_224", pretrained=(init == "imagenet"), num_classes=0)
+        try:
+            return timm.create_model(
+                "vit_small_patch16_224",
+                pretrained=(init == "imagenet"),
+                num_classes=0,
+                dynamic_img_size=True,
+            )
+        except TypeError:
+            model = timm.create_model("vit_small_patch16_224", pretrained=(init == "imagenet"), num_classes=0)
+            if hasattr(model, "patch_embed") and hasattr(model.patch_embed, "strict_img_size"):
+                model.patch_embed.strict_img_size = False
+            return model
     except ModuleNotFoundError as exc:
         if init == "imagenet":
             raise ModuleNotFoundError("timm is required for ImageNet-initialized DINO ViT-S/16") from exc
@@ -223,7 +234,7 @@ def main():
     start_epoch = 0
     resume_path = Path(args.resume_checkpoint) if args.resume_checkpoint else last_checkpoint_path
     if resume_path.exists():
-        checkpoint = torch.load(resume_path, map_location=device)
+        checkpoint = torch.load(resume_path, map_location=device, weights_only=False)
         student.load_state_dict(checkpoint["student"])
         teacher.load_state_dict(checkpoint["teacher"])
         if "optimizer" in checkpoint:

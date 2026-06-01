@@ -43,7 +43,7 @@ def main():
         num_workers=args.num_workers,
     )
     model = build_model("resnet18", finetune["init"], num_classes=4).to(device)
-    checkpoint = torch.load(args.checkpoint_path, map_location=device)
+    checkpoint = torch.load(args.checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     metrics = save_evaluation_outputs(model, test_loader, device, output_dir)
     print(metrics)

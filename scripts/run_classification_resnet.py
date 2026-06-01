@@ -103,7 +103,7 @@ def main():
                 best_path,
             )
 
-    checkpoint = torch.load(best_path, map_location=device)
+    checkpoint = torch.load(best_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     metrics = save_evaluation_outputs(
         model,
