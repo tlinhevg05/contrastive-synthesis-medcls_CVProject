@@ -94,7 +94,6 @@ notebooks/04d_train_resnet18_imagenet_covidqu_syn.ipynb
 notebooks/05_kaggle_resnet_simclr_runner.ipynb
 notebooks/05b_kaggle_resnet18_imagenet_covidqu.ipynb
 notebooks/05c_kaggle_resnet18_covidqu_syn.ipynb
-notebooks/05d_kaggle_resnet18_imagenet_covidqu_syn.ipynb
 notebooks/06_kaggle_vit_dino_runner.ipynb
 notebooks/07_colab_vit_dino_experiments.ipynb
 
