@@ -85,6 +85,19 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# local/legacy notebooks kept outside Git
+notebooks/00_colab_setup_and_data_check.ipynb
+notebooks/02_stage1_synthetic_data_registry.ipynb
+notebooks/04_train_resnet_simclr_experiments.ipynb
+notebooks/04a_train_resnet18_covidqu.ipynb
+notebooks/04d_train_resnet18_imagenet_covidqu_syn.ipynb
+notebooks/05_kaggle_resnet_simclr_runner.ipynb
+notebooks/05b_kaggle_resnet18_imagenet_covidqu.ipynb
+notebooks/05c_kaggle_resnet18_covidqu_syn.ipynb
+notebooks/05d_kaggle_resnet18_imagenet_covidqu_syn.ipynb
+notebooks/06_kaggle_vit_dino_runner.ipynb
+notebooks/07_colab_vit_dino_experiments.ipynb
+
 # IPython
 profile_default/
 ipython_config.py
