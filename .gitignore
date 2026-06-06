@@ -1,6 +1,5 @@
 # Generated synthetic images
 data/processed/synthetic_dcgan/
-data/processed/synthetic_acgan/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -214,7 +213,6 @@ data.zip
 
 # generated synthetic images
 data/processed/synthetic_dcgan/
-data/processed/synthetic_acgan/
 
 # experiment outputs and checkpoints
 results/

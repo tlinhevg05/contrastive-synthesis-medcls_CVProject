@@ -5,20 +5,17 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from torchvision import models, transforms
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
+from torchvision import transforms
 from torchvision.models.inception import inception_v3
 
-from tqdm import tqdm
 from PIL import Image
 from scipy.stats import entropy
 from src.utils.helper import get_path
-from src.models import (
-    acgan,
-    dcgan
-)
+from src.models import dcgan
+
 LABEL = ['COVID', 'Lung_Opacity', 'Normal', 'Viral_Pneumonia']
+
+
 def inception_score(gen_img_paths, device = "cpu", batch_size=32, resize=True, splits=1):
     """Computes the inception score of the generated images imgs
 
@@ -80,10 +77,10 @@ def inception_score(gen_img_paths, device = "cpu", batch_size=32, resize=True, s
 
     return np.mean(split_scores), np.std(split_scores)
 
-# Example usage
-def run_is_evaluate(model_name, device = "cpu", path = get_path()):
-    G, D = import_model(model_name)
-    abs_path = get_path()
+
+def run_is_evaluate(device = "cpu", path = get_path()):
+    G, _ = dcgan.get_model({})
+    model_name = "DCGAN"
     for label in LABEL:
         gen_img_paths = os.path.join(path, f'images/gen_images/{model_name}/{label}')
         print(gen_img_paths)
@@ -91,26 +88,10 @@ def run_is_evaluate(model_name, device = "cpu", path = get_path()):
             G.sample_images(label, os.path.join(path, 'images/gen_images'), 1000, 25, device = device)
         is_score = inception_score(gen_img_paths, device=device)
         print(f"Inception Score statistics for {model_name} on label {label}: {is_score[0]}")
-def import_model(model_name: str):
-    """
-    Dynamically import model based on model name.
-    """
-    if model_name == "ACGAN":
-        G, D = acgan.get_model({})
-    elif model_name == "DCGAN":
-        G, D = dcgan.get_model({})
-    else:
-        raise ValueError(f"Model {model_name} is not supported.") 
-    return G, D
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Compute FID score")
-    parser.add_argument(
-        '--model_name', 
-        type=str, 
-        choices=["ACGAN", "DCGAN"], 
-        default="ACGAN", 
-        help="The model type ('ACGAN' or 'DCGAN'). Default to 'ACGAN'."
-    )
     parser.add_argument(
         '--device',
         type=str,
@@ -119,6 +100,8 @@ def parse_args():
         help="Device to run the evaluation on ('cuda' or 'cpu'). Default: auto-select based on availability."
     )
     return parser.parse_args()
+
+
 if __name__ == "__main__":
     args = parse_args()
-    run_is_evaluate(args.model_name, args.device)
+    run_is_evaluate(args.device)

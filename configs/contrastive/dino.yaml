@@ -41,5 +41,5 @@ seed: 42
 
 # W&B Parameters
 wandb_project: "lung_radiology_dino_pretrain" 
-wandb_entity: "dvtiendat"  
+wandb_entity: null
 wandb_run_name: "dino_vit_small_pretrain"
