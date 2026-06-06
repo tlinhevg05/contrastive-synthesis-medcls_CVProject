@@ -19,7 +19,7 @@ center_momentum: 0.9
 momentum_teacher: 0.996 
 
 # Training Hyperparameters
-epochs: 120
+epochs: 100
 batch_size: 32
 learning_rate: 0.001 
 min_lr: 0.00001

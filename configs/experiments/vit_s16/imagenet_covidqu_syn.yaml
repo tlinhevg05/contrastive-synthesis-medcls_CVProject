@@ -8,7 +8,7 @@ pretrain:
   init: imagenet
   dataset: synthetic
   checkpoint_path: results/experiments/vit_s16_imagenet_covidqu_syn/pretrain/checkpoints/best_dino_teacher.pth
-  epochs: 120
+  epochs: 100
   batch_size: 64
   learning_rate: 0.001
 

@@ -97,6 +97,16 @@ notebooks/05c_kaggle_resnet18_covidqu_syn.ipynb
 notebooks/06_kaggle_vit_dino_runner.ipynb
 notebooks/07_colab_vit_dino_experiments.ipynb
 
+# local/legacy scripts kept outside Git
+scripts/.gitkeep
+scripts/train_classification_resnet.py
+scripts/train_simclr.py
+scripts/run_dino.py
+scripts/train_dino.sh
+scripts/finetune_vit.sh
+scripts/eval_vit.sh
+scripts/run_infer.py
+
 # IPython
 profile_default/
 ipython_config.py
