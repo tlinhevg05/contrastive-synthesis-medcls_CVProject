@@ -225,3 +225,9 @@ checkpoints/
 # python cache
 __pycache__/
 *.pyc
+notebooks/11_colab_read_experiment_outputs.ipynb
+notebooks/12_colab_resnet18_covidqu_syn_rerun.ipynb
+notebooks/13_colab_resnet18_imagenet_covidqu_syn_rerun.ipynb
+notebooks/14_kaggle_vit_s16_covidqu_syn_rerun.ipynb
+notebooks/15_kaggle_vit_s16_imagenet_covidqu_syn_rerun.ipynb
+dcgan_samples.png
