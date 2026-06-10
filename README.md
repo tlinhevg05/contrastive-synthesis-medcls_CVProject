@@ -9,15 +9,19 @@ The target classes are:
 - `Viral_Pneumonia`
 - `Normal`
 
-The main question is not whether synthetic data always improves classification. Instead, the project asks how synthetic DCGAN images compare with real unlabeled chest X-ray images as self-supervised pretraining sources, and whether their effect depends on the backbone and initialization strategy.
+The main question is not whether synthetic data always improves classification. Instead, the project evaluates different pretraining conditions, including ImageNet initialization, real unlabeled chest X-ray pretraining, and DCGAN-generated synthetic chest X-ray pretraining. Synthetic images are treated as one candidate pretraining source whose usefulness must be tested empirically against real unlabeled images and standard transfer learning baselines.
 
 ## Pipeline Overview
 
-The project is organized into three stages.
+The project is organized around a controlled experiment matrix. Each strategy differs in initialization or pretraining source, but all strategies share the same downstream supervised fine-tuning and evaluation protocol.
 
-### Stage 1: DCGAN Synthetic Image Generation
+### Stage 1: Synthetic Pretraining Source Construction
 
-Class-specific DCGAN generators are trained using the real labeled chest X-ray subset. The generated images are registered as a synthetic dataset with 1,000 images per class.
+Class-specific DCGAN generators are trained using the real labeled chest X-ray subset. Each generator produces images for one target class. The generated images are registered as a synthetic pretraining source with 1,000 images per class.
+
+This synthetic source is denoted as:
+
+- `CXR-Syn`: DCGAN-generated synthetic chest X-ray images
 
 The synthetic data is characterized using:
 
@@ -25,7 +29,7 @@ The synthetic data is characterized using:
 - Fréchet Inception Distance (FID)
 - Inception Score (IS)
 
-These metrics are used only as supporting diagnostics. The main evaluation of synthetic data is its downstream effect when used as a self-supervised pretraining source.
+These metrics are used only as supporting diagnostics. They are not used as the main criterion for deciding whether synthetic data is useful. The main evaluation of `CXR-Syn` is its downstream effect when used as a self-supervised pretraining source.
 
 ### Stage 2: Self-Supervised Pretraining
 
@@ -36,14 +40,16 @@ Two self-supervised learning methods are used:
 
 Two pretraining sources are compared:
 
-- `COVID-QU`: real unlabeled chest X-ray images
-- `COVID-QU-Syn`: DCGAN-generated synthetic chest X-ray images
+- `CXR-Unlabeled`: real unlabeled chest X-ray images
+- `CXR-Syn`: DCGAN-generated synthetic chest X-ray images
 
-The ImageNet-initialized variants test whether domain-specific SSL adds useful adaptation after generic visual pretraining.
+The ImageNet-initialized variants test whether self-supervised pretraining provides additional adaptation after the backbone has already learned generic visual representations from ImageNet.
 
 ### Stage 3: Supervised Fine-Tuning and Evaluation
 
-All strategies are fine-tuned on the same fixed real labeled train/validation/test manifests. Evaluation reports:
+All strategies are fine-tuned on the same fixed real labeled train/validation/test manifests. The supervised fine-tuning set contains only real labeled chest X-ray images. Synthetic images are not added to the supervised training, validation, or test split.
+
+Evaluation reports:
 
 - accuracy
 - macro precision, recall, and F1-score
@@ -62,9 +68,17 @@ data/processed/
     Lung_Opacity/images/
     Viral_Pneumonia/images/
     Normal/images/
-  unlabelled_16934/
+  unlabelled_16933/
     images/
+````
+
+In the report and experiment descriptions, the real unlabeled subset is referred to as:
+
+```text
+CXR-Unlabeled
 ```
+
+The physical folder name may still be `unlabelled_16933` because it reflects the processed data directory used by the code.
 
 The fixed supervised split is stored in:
 
@@ -93,32 +107,42 @@ synthetic_dcgan/
   Normal/images/
 ```
 
+In the report and experiment descriptions, this synthetic source is referred to as:
+
+```text
+CXR-Syn
+```
+
 ## Preprocessing
 
 The `data/processed` folders contain curated and organized image files. Pixel-level preprocessing is applied online by each training stage rather than permanently written back to disk.
 
-- DCGAN training resizes images and normalizes them to the `[-1, 1]` range.
-- SimCLR and DINO apply self-supervised augmentations during pretraining.
-- Supervised fine-tuning resizes images to `224 x 224`, applies training augmentation, converts images to tensors, and uses ImageNet normalization.
+* DCGAN training resizes images and normalizes them to the `[-1, 1]` range.
+* SimCLR and DINO apply self-supervised multi-view augmentations during pretraining.
+* Supervised fine-tuning resizes images to `224 x 224`, applies random horizontal flipping during training, converts images to tensors, and uses ImageNet normalization.
+
+Random resized cropping and stronger multi-view augmentations are mainly used during the self-supervised pretraining stages, not in the supervised fine-tuning baseline pipeline.
 
 ## Experiment Matrix
 
 The complete experiment design contains 12 experiments:
 
-| Backbone | Strategy | Experiment ID |
-|---|---|---|
-| ResNet18 | None | `resnet18_none` |
-| ResNet18 | ImageNet | `resnet18_imagenet` |
-| ResNet18 | COVID-QU | `resnet18_covidqu` |
-| ResNet18 | ImageNet -> COVID-QU | `resnet18_imagenet_covidqu` |
-| ResNet18 | COVID-QU-Syn | `resnet18_covidqu_syn` |
-| ResNet18 | ImageNet -> COVID-QU-Syn | `resnet18_imagenet_covidqu_syn` |
-| ViT-S/16 | None | `vit_s16_none` |
-| ViT-S/16 | ImageNet | `vit_s16_imagenet` |
-| ViT-S/16 | COVID-QU | `vit_s16_covidqu` |
-| ViT-S/16 | ImageNet -> COVID-QU | `vit_s16_imagenet_covidqu` |
-| ViT-S/16 | COVID-QU-Syn | `vit_s16_covidqu_syn` |
-| ViT-S/16 | ImageNet -> COVID-QU-Syn | `vit_s16_imagenet_covidqu_syn` |
+| Backbone | Strategy name in report   | Experiment ID in code           |
+| -------- | ------------------------- | ------------------------------- |
+| ResNet18 | None                      | `resnet18_none`                 |
+| ResNet18 | ImageNet                  | `resnet18_imagenet`             |
+| ResNet18 | CXR-Unlabeled             | `resnet18_covidqu`              |
+| ResNet18 | ImageNet -> CXR-Unlabeled | `resnet18_imagenet_covidqu`     |
+| ResNet18 | CXR-Syn                   | `resnet18_covidqu_syn`          |
+| ResNet18 | ImageNet -> CXR-Syn       | `resnet18_imagenet_covidqu_syn` |
+| ViT-S/16 | None                      | `vit_s16_none`                  |
+| ViT-S/16 | ImageNet                  | `vit_s16_imagenet`              |
+| ViT-S/16 | CXR-Unlabeled             | `vit_s16_covidqu`               |
+| ViT-S/16 | ImageNet -> CXR-Unlabeled | `vit_s16_imagenet_covidqu`      |
+| ViT-S/16 | CXR-Syn                   | `vit_s16_covidqu_syn`           |
+| ViT-S/16 | ImageNet -> CXR-Syn       | `vit_s16_imagenet_covidqu_syn`  |
+
+The experiment IDs keep the original `covidqu` naming to remain compatible with existing configuration files and result folders. The report-facing names `CXR-Unlabeled` and `CXR-Syn` are used to make the role of each pretraining source clearer.
 
 Experiment configs are stored under:
 
@@ -143,9 +167,9 @@ ckpts/                     # local checkpoint placeholder
 
 The intended separation is:
 
-- `notebooks/`: platform setup and experiment runners
-- `scripts/`: executable entrypoints for one pipeline action
-- `src/`: reusable library code used by scripts
+* `notebooks/`: platform setup and experiment runners
+* `scripts/`: executable entrypoints for one pipeline action
+* `src/`: reusable library code used by scripts
 
 Most training notebooks call Python scripts. The DCGAN notebook is more self-contained because it includes generation, inspection, and synthetic-data registration logic in one workflow.
 
@@ -163,10 +187,10 @@ notebooks/02_train_supervised_baselines.ipynb
 
 Kaggle runner for the four supervised baselines:
 
-- `resnet18_none`
-- `resnet18_imagenet`
-- `vit_s16_none`
-- `vit_s16_imagenet`
+* `resnet18_none`
+* `resnet18_imagenet`
+* `vit_s16_none`
+* `vit_s16_imagenet`
 
 ```text
 notebooks/03_resnet18_covidqu.ipynb
@@ -175,7 +199,7 @@ notebooks/05_resnet18_covidqu_syn.ipynb
 notebooks/06_resnet18_imagenet_covidqu_syn.ipynb
 ```
 
-ResNet18 SimCLR experiment runners.
+ResNet18 SimCLR experiment runners for the `CXR-Unlabeled`, `ImageNet -> CXR-Unlabeled`, `CXR-Syn`, and `ImageNet -> CXR-Syn` strategies.
 
 ```text
 notebooks/07_vit_s16_covidqu.ipynb
@@ -184,7 +208,7 @@ notebooks/09_vit_s16_covidqu_syn.ipynb
 notebooks/10_vit_s16_imagenet_covidqu_syn.ipynb
 ```
 
-ViT-S/16 DINO experiment runners.
+ViT-S/16 DINO experiment runners for the `CXR-Unlabeled`, `ImageNet -> CXR-Unlabeled`, `CXR-Syn`, and `ImageNet -> CXR-Syn` strategies.
 
 ```text
 notebooks/11_colab_read_experiment_outputs.ipynb
@@ -212,12 +236,12 @@ python scripts/check_experiment_inputs.py
 
 This validates:
 
-- all experiment configs
-- fixed supervised manifests
-- required CSV columns
-- class names and labels
-- real unlabeled dataset path
-- synthetic DCGAN manifest for COVID-QU-Syn experiments
+* all experiment configs
+* fixed supervised manifests
+* required CSV columns
+* class names and labels
+* real unlabeled dataset path
+* synthetic DCGAN manifest for `CXR-Syn` experiments
 
 The check should end with:
 
@@ -261,11 +285,11 @@ python scripts/register_synthetic_dataset.py \
 
 The manifest contains:
 
-- `image_path`
-- `class_name`
-- `label`
-- `source`
-- `generator`
+* `image_path`
+* `class_name`
+* `label`
+* `source`
+* `generator`
 
 Label mapping:
 
@@ -296,12 +320,12 @@ python scripts/run_classification_vit.py \
 
 ## Run SSL Pretraining + Fine-Tuning
 
-Example ResNet18 SimCLR run:
+Example ResNet18 SimCLR run using the real unlabeled source `CXR-Unlabeled`:
 
 ```bash
 python scripts/run_simclr_resnet.py \
   --config configs/experiments/resnet18/covidqu.yaml \
-  --real-unlabeled-dir data/processed/unlabelled_16934 \
+  --real-unlabeled-dir data/processed/unlabelled_16933 \
   --output-dir results/experiments/resnet18_covidqu
 ```
 
@@ -313,12 +337,12 @@ python scripts/run_classification_resnet.py \
   --pretrained-checkpoint results/experiments/resnet18_covidqu/pretrain/checkpoints/best_simclr_backbone.pth
 ```
 
-Example ViT-S/16 DINO run:
+Example ViT-S/16 DINO run using the real unlabeled source `CXR-Unlabeled`:
 
 ```bash
 python scripts/run_dino_vit.py \
   --config configs/experiments/vit_s16/covidqu.yaml \
-  --real-unlabeled-dir data/processed/unlabelled_16934 \
+  --real-unlabeled-dir data/processed/unlabelled_16933 \
   --output-dir results/experiments/vit_s16_covidqu
 ```
 
@@ -328,6 +352,12 @@ python scripts/run_classification_vit.py \
   --manifest-dir data/manifests \
   --output-dir results/experiments/vit_s16_covidqu \
   --pretrained-checkpoint results/experiments/vit_s16_covidqu/pretrain/checkpoints/best_dino_teacher.pth
+```
+
+For synthetic pretraining, use the corresponding `covidqu_syn` configs and provide the registered synthetic manifest:
+
+```text
+data/manifests/synthetic_dcgan.csv
 ```
 
 ## Output Files
@@ -347,4 +377,7 @@ SSL-based experiments additionally save pretraining checkpoints and history unde
 
 ```text
 results/experiments/<experiment_id>/pretrain/
+```
+
+```
 ```
