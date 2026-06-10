@@ -231,3 +231,6 @@ notebooks/13_colab_resnet18_imagenet_covidqu_syn_rerun.ipynb
 notebooks/14_kaggle_vit_s16_covidqu_syn_rerun.ipynb
 notebooks/15_kaggle_vit_s16_imagenet_covidqu_syn_rerun.ipynb
 dcgan_samples.png
+dataset_slide.jpg
+labelled_4232_samples.png
+plot_labelled_samples.py
