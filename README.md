@@ -1,34 +1,59 @@
-# Enhancing Lung Radiology Image Classification with DCGAN Synthesis and Contrastive Learning
+# Evaluating Pretraining Strategies for Lung Radiology Classification
 
-This repository implements a reproducible computer vision pipeline for 4-class chest X-ray classification. The project studies whether synthetic lung radiography images and contrastive/self-supervised pretraining can improve downstream medical image classification.
+This repository implements a reproducible computer vision pipeline for 4-class chest X-ray classification under limited labeled-data conditions. The project compares how different initialization and pretraining strategies affect downstream classification performance when all models are fine-tuned and evaluated on the same fixed real labeled split.
 
-The classification task uses four classes:
+The target classes are:
 
 - `COVID`
 - `Lung_Opacity`
 - `Viral_Pneumonia`
 - `Normal`
 
-The project is organized into three stages:
+The main question is not whether synthetic data always improves classification. Instead, the project asks how synthetic DCGAN images compare with real unlabeled chest X-ray images as self-supervised pretraining sources, and whether their effect depends on the backbone and initialization strategy.
 
-1. **Stage 1: Synthetic Image Generation**
-   - Generate or register DCGAN synthetic chest X-ray images.
-   - Inspect synthetic image samples.
-   - Report synthetic image quality using FID and Inception Score when metric artifacts are available.
+## Pipeline Overview
 
-2. **Stage 2: Contrastive Pretraining**
-   - ResNet18 uses SimCLR.
-   - ViT-S/16 uses DINO.
-   - `COVID-QU` means pretraining on the real unlabeled dataset.
-   - `COVID-QU-Syn` means pretraining on DCGAN synthetic images.
+The project is organized into three stages.
 
-3. **Stage 3: Supervised Fine-Tuning and Evaluation**
-   - All downstream classifiers are fine-tuned on the same fixed real labeled train/val/test split.
-   - Evaluation reports accuracy, macro/weighted precision, recall, F1-score, classification report, and confusion matrix.
+### Stage 1: DCGAN Synthetic Image Generation
+
+Class-specific DCGAN generators are trained using the real labeled chest X-ray subset. The generated images are registered as a synthetic dataset with 1,000 images per class.
+
+The synthetic data is characterized using:
+
+- visual inspection
+- Fréchet Inception Distance (FID)
+- Inception Score (IS)
+
+These metrics are used only as supporting diagnostics. The main evaluation of synthetic data is its downstream effect when used as a self-supervised pretraining source.
+
+### Stage 2: Self-Supervised Pretraining
+
+Two self-supervised learning methods are used:
+
+- ResNet18 uses SimCLR.
+- ViT-S/16 uses DINO.
+
+Two pretraining sources are compared:
+
+- `COVID-QU`: real unlabeled chest X-ray images
+- `COVID-QU-Syn`: DCGAN-generated synthetic chest X-ray images
+
+The ImageNet-initialized variants test whether domain-specific SSL adds useful adaptation after generic visual pretraining.
+
+### Stage 3: Supervised Fine-Tuning and Evaluation
+
+All strategies are fine-tuned on the same fixed real labeled train/validation/test manifests. Evaluation reports:
+
+- accuracy
+- macro precision, recall, and F1-score
+- weighted precision, recall, and F1-score
+- classification report
+- confusion matrix
 
 ## Dataset Layout
 
-The repository expects the following processed data layout:
+The expected processed data layout is:
 
 ```text
 data/processed/
@@ -52,21 +77,33 @@ data/manifests/
   split_summary.json
 ```
 
-The registered DCGAN synthetic dataset is stored as:
+The registered synthetic dataset manifest is:
 
 ```text
 data/manifests/synthetic_dcgan.csv
 ```
 
-The synthetic images themselves are not required to be committed to Git. On Colab/Drive they are expected at a configurable path such as:
+Synthetic images are not required to be committed to Git. In Colab or Kaggle, point the notebooks to the folder containing:
 
 ```text
-/content/drive/MyDrive/medcls_cvproject/data/processed/synthetic_dcgan/
+synthetic_dcgan/
+  COVID/images/
+  Lung_Opacity/images/
+  Viral_Pneumonia/images/
+  Normal/images/
 ```
 
-## Experiments
+## Preprocessing
 
-The report-aligned experiment design contains 12 experiments:
+The `data/processed` folders contain curated and organized image files. Pixel-level preprocessing is applied online by each training stage rather than permanently written back to disk.
+
+- DCGAN training resizes images and normalizes them to the `[-1, 1]` range.
+- SimCLR and DINO apply self-supervised augmentations during pretraining.
+- Supervised fine-tuning resizes images to `224 x 224`, applies training augmentation, converts images to tensors, and uses ImageNet normalization.
+
+## Experiment Matrix
+
+The complete experiment design contains 12 experiments:
 
 | Backbone | Strategy | Experiment ID |
 |---|---|---|
@@ -96,19 +133,21 @@ configs/experiments/
 ## Repository Structure
 
 ```text
-configs/experiments/       # 12 reproducible experiment configs
-data/manifests/            # fixed train/val/test and synthetic manifests
-notebooks/                 # Colab/Kaggle runner notebooks
+configs/experiments/       # experiment configs
+data/manifests/            # fixed split and synthetic manifests
+notebooks/                 # Colab/Kaggle experiment runners
 scripts/                   # command-line entrypoints
-src/                       # reusable model/data/training/evaluation code
-ckpts/                     # local checkpoint placeholder only
+src/                       # reusable model, data, training, and evaluation code
+ckpts/                     # local checkpoint placeholder
 ```
 
 The intended separation is:
 
-- `notebooks/`: environment setup and experiment runners. Most training notebooks call Python scripts with `!python ...`.
-- `scripts/`: executable entrypoints for one pipeline action, such as SimCLR pretraining, DINO pretraining, supervised fine-tuning, evaluation, or input validation.
-- `src/`: reusable library code used by scripts, including model definitions, datasets, transforms, losses, and utility functions.
+- `notebooks/`: platform setup and experiment runners
+- `scripts/`: executable entrypoints for one pipeline action
+- `src/`: reusable library code used by scripts
+
+Most training notebooks call Python scripts. The DCGAN notebook is more self-contained because it includes generation, inspection, and synthetic-data registration logic in one workflow.
 
 ## Main Notebooks
 
@@ -116,13 +155,13 @@ The intended separation is:
 notebooks/01_train_dcgan.ipynb
 ```
 
-Stage 1 DCGAN notebook. This notebook contains DCGAN training/inspection code directly because it is a self-contained synthetic generation workflow. By default it is configured to reuse existing DCGAN outputs instead of retraining.
+Stage 1 DCGAN training, inspection, synthetic-image generation, and synthetic dataset registration.
 
 ```text
 notebooks/02_train_supervised_baselines.ipynb
 ```
 
-Runs the four supervised baseline experiments:
+Kaggle runner for the four supervised baselines:
 
 - `resnet18_none`
 - `resnet18_imagenet`
@@ -136,12 +175,7 @@ notebooks/05_resnet18_covidqu_syn.ipynb
 notebooks/06_resnet18_imagenet_covidqu_syn.ipynb
 ```
 
-Run the four ResNet18 SimCLR experiments. These notebooks call:
-
-```text
-scripts/run_simclr_resnet.py
-scripts/run_classification_resnet.py
-```
+ResNet18 SimCLR experiment runners.
 
 ```text
 notebooks/07_vit_s16_covidqu.ipynb
@@ -150,22 +184,23 @@ notebooks/09_vit_s16_covidqu_syn.ipynb
 notebooks/10_vit_s16_imagenet_covidqu_syn.ipynb
 ```
 
-Run the four ViT-S/16 DINO experiments. These notebooks call:
+ViT-S/16 DINO experiment runners.
 
 ```text
-scripts/run_dino_vit.py
-scripts/run_classification_vit.py
+notebooks/11_colab_read_experiment_outputs.ipynb
 ```
+
+Utility notebook for reading and summarizing result folders.
 
 ## Setup
 
-Create an environment with Python 3.10+ or use Colab/Kaggle. The notebooks include platform-specific setup cells. For local script checks:
+For local checks:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-If the runtime already provides PyTorch, especially on Colab or Kaggle, install non-PyTorch dependencies only or use the dependency filtering cell in the notebooks. This avoids CUDA/PyTorch wheel conflicts.
+On Colab or Kaggle, PyTorch is usually already installed. In that case, use the notebook dependency cells or install only the non-PyTorch packages to avoid CUDA wheel conflicts.
 
 ## Verify Inputs
 
@@ -177,23 +212,24 @@ python scripts/check_experiment_inputs.py
 
 This validates:
 
-- all 12 experiment configs
+- all experiment configs
 - fixed supervised manifests
 - required CSV columns
 - class names and labels
 - real unlabeled dataset path
-- DCGAN synthetic manifest for COVID-QU-Syn experiments
-- planned output directories
+- synthetic DCGAN manifest for COVID-QU-Syn experiments
 
-Expected result before training:
+The check should end with:
 
 ```text
 FAIL: 0
 ```
 
+Warnings about `synthetic_dcgan.csv` are acceptable before the Stage 1 synthetic registry has been run.
+
 ## Create Fixed Splits
 
-The train/val/test split is a CPU-only preprocessing step:
+The train/validation/test split is a CPU-only local preprocessing step:
 
 ```bash
 python scripts/create_split_manifest.py \
@@ -212,9 +248,9 @@ data/manifests/labelled_all.csv
 data/manifests/split_summary.json
 ```
 
-## Register DCGAN Synthetic Dataset
+## Register Synthetic Data
 
-If synthetic images are stored on Google Drive, register them into a manifest:
+If DCGAN images are stored outside the repo, register them into a manifest:
 
 ```bash
 python scripts/register_synthetic_dataset.py \
@@ -240,9 +276,9 @@ Viral_Pneumonia: 2
 Normal: 3
 ```
 
-## Run Supervised Baselines
+## Run Baselines
 
-Examples:
+Example commands:
 
 ```bash
 python scripts/run_classification_resnet.py \
@@ -258,17 +294,16 @@ python scripts/run_classification_vit.py \
   --output-dir results/experiments/vit_s16_imagenet
 ```
 
-## Run ResNet18 SimCLR Experiments
+## Run SSL Pretraining + Fine-Tuning
 
-SimCLR pretraining:
+Example ResNet18 SimCLR run:
 
 ```bash
 python scripts/run_simclr_resnet.py \
   --config configs/experiments/resnet18/covidqu.yaml \
+  --real-unlabeled-dir data/processed/unlabelled_16934 \
   --output-dir results/experiments/resnet18_covidqu
 ```
-
-Fine-tuning from SimCLR checkpoint:
 
 ```bash
 python scripts/run_classification_resnet.py \
@@ -278,17 +313,14 @@ python scripts/run_classification_resnet.py \
   --pretrained-checkpoint results/experiments/resnet18_covidqu/pretrain/checkpoints/best_simclr_backbone.pth
 ```
 
-## Run ViT-S/16 DINO Experiments
-
-DINO pretraining:
+Example ViT-S/16 DINO run:
 
 ```bash
 python scripts/run_dino_vit.py \
   --config configs/experiments/vit_s16/covidqu.yaml \
+  --real-unlabeled-dir data/processed/unlabelled_16934 \
   --output-dir results/experiments/vit_s16_covidqu
 ```
-
-Fine-tuning from DINO checkpoint:
 
 ```bash
 python scripts/run_classification_vit.py \
@@ -298,55 +330,21 @@ python scripts/run_classification_vit.py \
   --pretrained-checkpoint results/experiments/vit_s16_covidqu/pretrain/checkpoints/best_dino_teacher.pth
 ```
 
-## Outputs
+## Output Files
 
-Each classification experiment writes to:
+Each completed classification experiment saves:
 
 ```text
 results/experiments/<experiment_id>/
+  config_resolved.yaml
+  best_checkpoint.pth
+  metrics.json
+  classification_report.csv
+  confusion_matrix.png
 ```
 
-Expected files:
+SSL-based experiments additionally save pretraining checkpoints and history under:
 
 ```text
-config_resolved.yaml
-best_checkpoint.pth
-metrics.json
-classification_report.csv
-confusion_matrix.png
+results/experiments/<experiment_id>/pretrain/
 ```
-
-Contrastive experiments also include:
-
-```text
-pretrain/checkpoints/
-pretrain/*_history.json
-```
-
-`results/` and model checkpoint files are ignored by Git.
-
-## Metrics
-
-The classification metrics are:
-
-- `accuracy`
-- `precision_macro`
-- `recall_macro`
-- `f1_macro`
-- `precision_weighted`
-- `recall_weighted`
-- `f1_weighted`
-
-Synthetic image quality can be summarized using:
-
-- FID between real labeled images and DCGAN synthetic images
-- Inception Score on DCGAN synthetic images
-- visual sample grids by class
-
-## Notes
-
-- Training should be run on GPU through Colab or Kaggle.
-- Local execution is intended for repository inspection, manifest creation, config validation, and lightweight script checks.
-- The fixed split seed is `42`.
-- The image size used by the experiment configs is `224`.
-- The synthetic source for all `COVID-QU-Syn` experiments is DCGAN.
